@@ -39,14 +39,34 @@ app.use(
 );
 
 app.use(express.static(path.join(__dirname, "..", "public")));
-app.use("/report", express.static(path.join(__dirname, "..", "report")));
+app.use("/report", express.static(path.join(__dirname, "views", "report")));
 
 app.use("/api", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api", dataRouter);
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "login.html"));
+  res.sendFile(path.join(__dirname, "views", "login.html"));
+});
+
+app.get("/search", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "search.html"));
+});
+
+app.get("/admin/permissions", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "admin", "permissions.html"));
+});
+
+app.get("/admin/audit-logs", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "admin", "audit-logs.html"));
+});
+
+app.get("/report/CustomerGrowth", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "report", "CustomerGrowth.html"));
+});
+
+app.get("/report/SalesAnalytics", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "report", "SalesAnalytics.html"));
 });
 
 export default app;
