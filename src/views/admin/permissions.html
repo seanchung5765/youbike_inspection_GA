@@ -1,172 +1,240 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>權限管理</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
+  <title>YouBike 模擬體驗後台 - 角色權限管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script defer src="/js/admin-permissions.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #ea580c; border-radius: 10px; }
+    
+    /* 核心優化：解決字體太小與大小不一的問題 */
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 95px; /* 統一加寬，避免字數不等造成參差不齊 */
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 0.95rem; /* 調大字體，拒絕 10px */
+        letter-spacing: 0.5px;
+        border: 1.5px solid transparent;
+        transition: all 0.2s;
+    }
+    .badge-front { background-color: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+    .badge-back { background-color: #faf5ff; color: #9333ea; border-color: #f3e8ff; }
+
+    /* 列表表頭字體加大 */
+    .table-head-text {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 900;
+        letter-spacing: 1px;
+    }
+  </style>
 </head>
 
-<body class="bg-slate-100 min-h-screen p-6">
-<div class="p-8 font-sans text-slate-800" x-data="permissionManager()">
-    <h2 class="text-2xl font-black mb-6 border-l-4 border-orange-600 pl-4">帳號角色管理</h2>
-
-    <div class="bg-slate-500 p-4 rounded-t-lg flex items-center space-x-4 shadow-inner">
-        <label class="text-white font-bold whitespace-nowrap">帳號資料：</label>
-        <div class="relative flex-1 max-w-sm">
-            <input type="text" x-model="searchId" @keyup.enter="lookupUser" class="w-full px-4 py-2 rounded border-none focus:ring-2 focus:ring-orange-500 outline-none text-slate-700" placeholder="請輸入公號">
-        </div>
-        <button @click="lookupUser" :disabled="loading" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded font-bold transition flex items-center shadow-md disabled:opacity-50">
-            <span x-show="!loading">確定</span>
-            <span x-show="loading" class="animate-spin mr-2">🌀</span>
-        </button>
+<body class="bg-slate-50 flex flex-col h-screen overflow-hidden text-base" x-data="permissionManager()">
+  
+  <div x-show="showToast" x-transition class="fixed top-10 left-0 right-0 z-[100] flex justify-center pointer-events-none" x-cloak>
+    <div class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-600">
+      <div class="bg-green-500 rounded-full p-1">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+      </div>
+      <span class="font-bold text-lg">帳號權限已成功儲存！</span>
     </div>
+  </div>
 
-    <div 
-        x-show="showEditor" 
-        x-transition 
-        class="bg-slate-300 p-6 shadow-lg border-t border-slate-400 mb-8"
-    >
-        <div class="flex flex-wrap items-end gap-4">
-            
-            <div class="w-32">
-                <label class="block text-xs font-bold text-slate-700 mb-1">姓名</label>
-                <div class="bg-slate-100 border border-slate-400 px-3 py-2 rounded h-10 flex items-center text-sm font-medium" x-text="userData.name"></div>
-            </div>
+  <div class="flex flex-1 overflow-hidden relative">
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-100 custom-scrollbar">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-2xl md:text-3xl font-black text-slate-800 border-l-8 border-orange-600 pl-4 mb-8">人員權限管理系統</h2>
 
-            <div class="w-32">
-                <label class="block text-xs font-bold text-slate-700 mb-1">公號</label>
-                <div class="bg-slate-100 border border-slate-400 px-3 py-2 rounded h-10 flex items-center text-sm font-mono" x-text="userData.empId"></div>
-            </div>
-
-            <div class="w-40">
-                <label class="block text-xs font-bold text-slate-700 mb-1">目前角色</label>
-                <div class="bg-slate-200 border border-slate-400 px-3 py-2 rounded h-10 flex items-center text-xs text-slate-600 italic" x-text="userData.currentRole || '尚未設定'"></div>
-            </div>
-
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs font-bold text-slate-700 mb-1">修改成的角色</label>
-                <select 
-                    x-model="selectedRole" 
-                    class="w-full bg-white border border-slate-400 px-3 py-2 rounded h-10 text-sm focus:ring-2 focus:ring-orange-500 outline-none cursor-pointer"
-                >
-                    <option value="">請選擇角色...</option>
-                    <template x-for="role in roleOptions" :key="role">
-                        <option :value="role" x-text="role"></option>
-                    </template>
-                </select>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <button 
-                    @click="submitRole"
-                    :disabled="!selectedRole || loading"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 h-10 rounded font-bold shadow transition active:scale-95 disabled:bg-slate-400 text-sm"
-                >
-                    送出
-                </button>
-
-                <button 
-                    @click="deleteRole"
-                    x-show="userData.currentRole"
-                    :disabled="loading"
-                    class="bg-red-500 hover:bg-red-600 text-white px-4 h-10 rounded font-bold shadow transition active:scale-95 text-sm"
-                >
-                    刪除
-                </button>
+        <div class="bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-slate-200 mb-8">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1 w-full">
+                    <label class="text-slate-500 font-bold block mb-2 text-sm md:text-base">請輸入工號進行查詢或新增</label>
+                    <div class="relative">
+                        <input type="text" x-model="searchId" @keyup.enter="lookupUser" class="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-orange-500 focus:ring-0 outline-none text-xl font-mono transition" placeholder="例如: GB4860">
+                        <span class="absolute left-4 top-4.5 text-xl">🔍</span>
+                    </div>
+                </div>
+                <button @click="lookupUser" class="w-full md:w-auto bg-slate-800 hover:bg-black text-white px-10 py-4.5 rounded-2xl font-black text-lg transition active:scale-95">帶入人員資料</button>
             </div>
         </div>
-        
-        <div x-show="message" x-transition class="mt-4 text-sm font-bold text-green-700" x-text="message"></div>
-    </div>
 
-    <div class="mt-12">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                目前權限名單總覽
-            </h3>
-            <button @click="fetchUserList" class="text-blue-600 hover:underline text-sm">🔄 刷新列表</button>
+        <div x-show="showEditor" x-transition class="space-y-6 mb-12" x-cloak>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2"><span class="w-2 h-5 bg-orange-500 rounded"></span> 1. 單位設定</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">目前人員</label>
+                            <div class="text-2xl font-black text-slate-900 mt-1" x-text="userData.name"></div>
+                            <div class="text-sm font-mono font-bold text-slate-400" x-text="userData.empId"></div>
+                        </div>
+                        <div class="space-y-3">
+                            <select x-model="selectedRegion" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-orange-500">
+                                <option value="">選擇區域 (如: 北營處)</option>
+                                <template x-for="(subs, region) in regionData" :key="region"><option :value="region" x-text="region"></option></template>
+                            </select>
+                            <select x-model="selectedUnit" :disabled="!selectedRegion" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-orange-500 disabled:opacity-50">
+                                <option value="">選擇縣市 (如: 雙北)</option>
+                                <template x-for="unit in regionData[selectedRegion]" :key="unit"><option :value="unit" x-text="unit"></option></template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2"><span class="w-2 h-5 bg-blue-500 rounded"></span> 2. 前臺計分角色</h3>
+                    <div class="space-y-3">
+                        <template x-for="role in frontRoles" :key="role">
+                            <label class="flex items-center p-4 rounded-2xl border-2 border-slate-50 hover:border-blue-100 cursor-pointer transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                                <input type="radio" :value="role" x-model="selectedFrontRole" class="w-5 h-5 text-blue-600">
+                                <span class="ml-4 font-black text-lg text-slate-700" x-text="role"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2"><span class="w-2 h-5 bg-purple-500 rounded"></span> 3. 後臺系統權限</h3>
+                    <select x-model="selectedBackRole" class="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl font-black text-xl outline-none focus:border-purple-500 shadow-inner">
+                        <option value="">-- 選擇後台角色 --</option>
+                        <template x-for="role in backRoles" :key="role"><option :value="role" x-text="role"></option></template>
+                    </select>
+                    <p class="mt-6 text-sm text-slate-400 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-dashed">
+                        💡 提示：管理員擁有全系統權限，營運管理可進行報表匯出與資料檢視。
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-end gap-4 p-2">
+                <button @click="showEditor = false" class="px-8 py-4 font-bold text-slate-500 hover:text-slate-800 transition text-lg">取消返回</button>
+                <button @click="submitRole" class="px-16 py-4 bg-orange-600 hover:bg-orange-700 text-white font-black text-xl rounded-2xl shadow-xl shadow-orange-100 transition active:scale-95">儲存權限設定</button>
+            </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-800 text-white text-sm uppercase tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4 font-bold">姓名</th>
-                        <th class="px-6 py-4 font-bold">公號</th>
-                        <th class="px-6 py-4 font-bold">所屬角色</th>
-                        <th class="px-6 py-4 font-bold text-center">操作</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <template x-for="user in userList" :key="user.empId">
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 font-medium text-slate-700" x-text="user.name"></td>
-                            <td class="px-6 py-4 font-mono text-sm" x-text="user.empId"></td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold" 
-                                      :class="user.role === '管理員' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'"
-                                      x-text="user.role"></span>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <button @click="editFromList(user.empId)" class="text-indigo-600 hover:text-indigo-900 font-bold text-sm">編輯權限</button>
-                            </td>
-                        </tr>
-                    </template>
-                    <template x-if="userList.length === 0">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                <h3 class="font-black text-slate-700 italic tracking-tighter text-lg">EXISTING USERS</h3>
+                <span class="text-sm font-bold text-slate-400 bg-white px-3 py-1 rounded-full shadow-sm border">Total: <span x-text="userList.length"></span></span>
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-100">
                         <tr>
-                            <td colspan="4" class="px-6 py-10 text-center text-slate-400">目前尚無任何權限設定</td>
+                            <th class="px-8 py-5 table-head-text">姓名 / 工號</th>
+                            <th class="px-8 py-5 table-head-text">所屬單位</th>
+                            <th class="px-8 py-5 table-head-text">角色配置 (前/後)</th>
+                            <th class="px-8 py-5 table-head-text text-right">管理</th>
                         </tr>
-                    </template>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        <template x-for="user in userList" :key="user.empId">
+                            <tr class="hover:bg-slate-50/80 transition group">
+                                <td class="px-8 py-6">
+                                    <div class="font-black text-slate-900 text-lg" x-text="user.name"></div>
+                                    <div class="text-sm font-mono font-bold text-slate-400" x-text="user.empId"></div>
+                                </td>
+                                <td class="px-8 py-6 text-base font-bold text-slate-600" x-text="user.region + ' / ' + user.unit"></td>
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-3">
+                                        <span class="role-badge badge-front" x-text="user.frontRole"></span>
+                                        <span class="role-badge badge-back" x-text="user.backRole"></span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 text-right">
+                                    <button @click="editFromList(user)" class="text-slate-400 group-hover:text-orange-600 font-black text-base transition underline underline-offset-4">編輯</button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="md:hidden divide-y divide-slate-100">
+                <template x-for="user in userList" :key="user.empId">
+                    <div class="p-6 space-y-5">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-black text-xl text-slate-900" x-text="user.name"></div>
+                                <div class="text-sm font-mono font-bold text-slate-400" x-text="user.empId"></div>
+                            </div>
+                            <button @click="editFromList(user)" class="bg-orange-50 text-orange-600 px-5 py-2 rounded-xl font-black text-sm border border-orange-100">編輯權限</button>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-black text-slate-400 uppercase">所屬單位</span>
+                                <span class="font-bold text-slate-700" x-text="user.region + ' / ' + user.unit"></span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 pt-2">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase">前臺計分</span>
+                                    <span class="role-badge badge-front w-full" x-text="user.frontRole"></span>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase">後臺權限</span>
+                                    <span class="role-badge badge-back w-full" x-text="user.backRole"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
         </div>
-    </div>
-</div>
-</body>
-<script>
-function permissionManager() {
-    return {
-        searchId: '',
-        loading: false,
-        showEditor: false,
-        selectedRole: '',
-        userData: { name: '', empId: '', currentRole: '' },
-        // 範例名單資料
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function permissionManager() {
+      return {
+        searchId: '', showEditor: false, showToast: false,
+        userData: { name: '', empId: '' },
+        selectedRegion: '', selectedUnit: '', selectedFrontRole: '', selectedBackRole: '',
+        regionData: {
+          '經營': ['總部'],
+          '北營處': ['雙北'],
+          '桃竹苗營處': ['桃園', '新竹', '苗栗'],
+          '中營處': ['台中', '嘉義'],
+          '南營處': ['台南', '高雄', '屏東', '台東'],
+          '東營處': ['宜蘭', '花蓮']
+        },
+        frontRoles: ['專員', '營運處', '其他'],
+        backRoles: ['管理員', '營運_管理', '營運_閱覽'],
         userList: [
-            { name: '王承甫', empId: 'GB4860', role: '客服TEAM' },
-            { name: '張小明', empId: 'GB1234', role: '管理員' },
-            { name: '李大同', empId: 'GB9999', role: '營運處長' }
+          { name: '王承甫', empId: 'GB4860', region: '北營處', unit: '雙北', frontRole: '專員', backRole: '管理員' },
+          { name: '張小明', empId: 'GB1234', region: '桃竹苗營處', unit: '桃園', frontRole: '營運處', backRole: '營運_管理' }
         ],
-        roleOptions: ['客服TEAM', '營運處長', '財務TEAM', '管理員', '維調主任', '研發主管'],
-
-        async lookupUser() {
-            if (!this.searchId) return;
-            this.loading = true;
-            await new Promise(r => setTimeout(r, 500)); // 模擬 API
-            
-            // 邏輯同前，查到後 showEditor = true
-            this.userData = { name: '王承甫', empId: this.searchId.toUpperCase(), currentRole: '客服TEAM' };
+        lookupUser() {
+          if (!this.searchId) return;
+          this.userData = { name: '王承甫', empId: this.searchId.toUpperCase() };
+          this.showEditor = true;
+        },
+        editFromList(user) {
+            this.userData = { name: user.name, empId: user.empId };
+            this.selectedRegion = user.region;
+            this.selectedUnit = user.unit;
+            this.selectedFrontRole = user.frontRole;
+            this.selectedBackRole = user.backRole;
             this.showEditor = true;
-            this.loading = false;
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
         },
-
-        editFromList(id) {
-            this.searchId = id;
-            this.lookupUser();
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // 平滑捲動回上方
-        },
-
-        async fetchUserList() {
-            // 未來串接 API: GET /api/admin/users
-            console.log("重新獲取權限列表...");
+        submitRole() {
+          this.showToast = true;
+          this.showEditor = false;
+          setTimeout(() => { this.showToast = false; }, 2500);
         }
+      }
     }
-}
-</script>
+  </script>
+</body>
 </html>
