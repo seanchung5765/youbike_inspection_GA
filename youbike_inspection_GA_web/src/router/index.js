@@ -15,13 +15,13 @@ const router = createRouter({
       name: 'HomeView',
       component: HomeView,
       // 💡 進入首頁自動重定向到與檔案同名的路徑
-      redirect: '/HomeView/SearchView', 
+      redirect: '/HomeView/DashboardView', 
       children: [
         {
           // 💡 路徑現在完全對應檔案名稱 SearchView.vue
-          path: 'SearchView',
-          name: 'SearchView',
-          component: () => import('../views/SearchView.vue')
+          path: 'DashboardView',
+          name: 'DashboardView',
+          component: () => import('../views/DashboardView.vue')
         },
         {
           // 💡 路徑現在完全對應檔案名稱 UserPermissionsView.vue

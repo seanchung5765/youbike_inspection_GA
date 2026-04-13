@@ -36,7 +36,7 @@
             {{ isLoading ? '登入中...' : '登入' }}
           </button>
 
-          <p class="text-sm text-rose-600 min-h-[20px]">{{ errorMsg }}</p>
+          <p class="text-sm text-rose-600 min-h-5">{{ errorMsg }}</p>
         </div>
       </div>
     </div>

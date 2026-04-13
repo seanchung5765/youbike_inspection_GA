@@ -2,7 +2,7 @@
   <div class="w-full h-full">
     <div class="p-8 border-b bg-white">
       <h1 class="text-2xl font-black text-slate-800">數據查詢首頁</h1>
-      <p class="text-slate-500 text-sm">目前的網址路徑已對應檔案名稱：/HomeView/SearchView</p>
+      <p class="text-slate-500 text-sm">目前的網址路徑已對應檔案名稱：/HomeView/DashboardView</p>
     </div>
 
     <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -8,7 +8,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="showToast" class="fixed top-10 left-0 right-0 z-[100] flex justify-center pointer-events-none">
+      <div v-if="showToast" class="fixed top-10 left-0 right-0 z-100 flex justify-center pointer-events-none">
         <div class="bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
           <div class="bg-green-500 rounded-full p-1">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,12 +23,12 @@
     <div class="max-w-6xl mx-auto">
       <div class="mb-10 flex items-center justify-between">
         <div>
-          <h2 class="text-3xl font-black text-slate-800 tracking-tight">人員權限管理</h2>
+          <h2 class="text-3xl fSSont-black text-slate-800 tracking-tight">人員權限管理</h2>
           <p class="text-slate-400 font-medium mt-1">管理各營運處的人員計分與後臺存取角色</p>
         </div>
       </div>
 
-      <div class="bg-white p-8 rounded-[2rem] card-shadow border border-slate-100 mb-8">
+      <div class="bg-white p-8 rounded-2rem card-shadow border border-slate-100 mb-8">
         <div class="flex flex-col md:flex-row gap-6 items-end">
           <div class="flex-1 w-full relative">
             <label class="input-label">查詢或新增人員工號</label>
@@ -73,7 +73,7 @@
       >
         <div v-if="showEditor" class="space-y-6 mb-12">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-8 rounded-[2rem] card-shadow border border-slate-100 relative overflow-hidden">
+            <div class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 relative overflow-hidden">
               <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
                 <span class="w-2 h-6 bg-orange-500 rounded-full"></span> 1. 單位設定
               </h3>
@@ -99,7 +99,7 @@
               </div>
             </div>
 
-            <div class="bg-white p-8 rounded-[2rem] card-shadow border border-slate-100">
+            <div class="bg-white p-8 rounded-3xl card-shadow border border-slate-100">
               <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
                 <span class="w-2 h-6 bg-blue-500 rounded-full"></span> 2. 前臺計分角色
               </h3>
@@ -114,7 +114,7 @@
               </div>
             </div>
 
-            <div class="bg-white p-8 rounded-[2rem] card-shadow border border-slate-100 flex flex-col">
+            <div class="bg-white p-8 rounded-3xl card-shadow border border-slate-100 flex flex-col">
               <h3 class="font-black text-slate-800 text-lg mb-6 flex items-center gap-2">
                 <span class="w-2 h-6 bg-purple-500 rounded-full"></span> 3. 後臺系統權限
               </h3>
@@ -138,7 +138,7 @@
         </div>
       </transition>
 
-      <div class="bg-white rounded-[2rem] card-shadow border border-slate-100 overflow-hidden">
+      <div class="bg-white rounded-3xl card-shadow border border-slate-100 overflow-hidden">
         <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
           <h3 class="font-black text-slate-800 text-xl tracking-tight uppercase">已配置權限的人員名單</h3>
           <div class="text-right">
@@ -148,7 +148,7 @@
         </div>
 
         <div class="p-6 bg-white border-b border-slate-50 flex flex-wrap gap-4">
-          <div class="flex-1 min-w-[200px]">
+          <div class="flex-1 min-width: 200px">
             <input 
               v-model="listQuery" 
               type="text" 
