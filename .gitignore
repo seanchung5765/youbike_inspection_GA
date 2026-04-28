@@ -1,0 +1,21 @@
+# 依賴套件
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# 環境變數與私鑰
+.env
+backend/.env
+
+# 編譯產物
+dist/
+build/
+
+# 編輯器設定與系統檔案
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 排除資料庫相關檔案與目錄
+database/
+*.sql
