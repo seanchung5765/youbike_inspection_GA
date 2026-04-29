@@ -36,21 +36,49 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/units/:unitId/regions - 更新單位的地區權限
+// PUT /api/units/:unitId/regions - 差異更新單位的地區權限
 router.put('/:unitId/regions', async (req, res) => {
   const { unitId } = req.params;
-  const { region_ids, operator_id } = req.body;
+  // 🌟 1. 這裡一定要把 name 接進來！
+  const { name, region_ids, operator_id } = req.body; 
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    // 1. 刪除該單位原本的所有地區權限
-    await connection.query('DELETE FROM unit_allowed_regions WHERE unit_id = ?', [unitId]);
+    // ==========================================
+    // 🌟 任務 A：更新單位主表的名稱 (把原本的第 5 步移到這裡來做)
+    // ==========================================
+    if (name) {
+      await connection.query(
+        'UPDATE units SET name = ?, updated_by = ?, updated_at = NOW() WHERE id = ?',
+        [name, operator_id, unitId]
+      );
+    }
 
-    // 2. 批次寫入新的地區權限
-    if (region_ids && region_ids.length > 0) {
-      const values = region_ids.map(regionId => [unitId, regionId, operator_id]);
+    // ==========================================
+    // 🌟 任務 B：更新地區權限 (你原本寫得很好的 Smart Sync 邏輯)
+    // ==========================================
+    const [existingRows] = await connection.query(
+      'SELECT region_id FROM unit_allowed_regions WHERE unit_id = ?',
+      [unitId]
+    );
+    const existingIds = existingRows.map(r => r.region_id);
+
+    const currentRegionIds = region_ids || [];
+
+    const toDelete = existingIds.filter(id => !currentRegionIds.includes(id));
+    const toAdd = currentRegionIds.filter(id => !existingIds.includes(id));
+
+    if (toDelete.length > 0) {
+      await connection.query(
+        'DELETE FROM unit_allowed_regions WHERE unit_id = ? AND region_id IN (?)',
+        [unitId, toDelete]
+      );
+    }
+
+    if (toAdd.length > 0) {
+      const values = toAdd.map(rid => [unitId, rid, operator_id]);
       await connection.query(
         'INSERT INTO unit_allowed_regions (unit_id, region_id, created_by) VALUES ?',
         [values]
@@ -58,7 +86,7 @@ router.put('/:unitId/regions', async (req, res) => {
     }
 
     await connection.commit();
-    res.json({ success: true, message: '單位權限更新成功' });
+    res.json({ success: true, message: '單位與權限更新成功' });
 
   } catch (error) {
     await connection.rollback();
@@ -71,22 +99,23 @@ router.put('/:unitId/regions', async (req, res) => {
 
 // POST /api/units - 新增單位與地區權限
 router.post('/', async (req, res) => {
-  const { unit_name, region_ids, operator_id } = req.body;
+  // 🌟 1. 這裡把 unit_name 改成跟前台一樣的 name
+  const { name, region_ids, operator_id } = req.body;
   const connection = await db.getConnection();
 
   try {
-    // 1. 防呆：檢查名稱是否重複
-    const [exist] = await db.query('SELECT id FROM units WHERE name = ?', [unit_name]);
+    // 防呆：檢查名稱是否重複 (這裡也改成 name)
+    const [exist] = await connection.query('SELECT id FROM units WHERE name = ?', [name]);
     if (exist.length > 0) {
       return res.status(400).json({ success: false, message: '該單位名稱已存在' });
     }
 
     await connection.beginTransaction();
 
-    // 2. 寫入單位主表
+    // 2. 寫入單位主表 (這裡也改成 name)
     const [unitResult] = await connection.query(
       'INSERT INTO units (name, status, created_by) VALUES (?, "ACTIVE", ?)',
-      [unit_name, operator_id]
+      [name, operator_id]
     );
     const newUnitId = unitResult.insertId;
 
@@ -104,6 +133,8 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     await connection.rollback();
+    // 🌟 把錯誤印在後端終端機，以後除錯一秒鐘搞定！
+    console.error("❌ 新增單位失敗：", error);
     res.status(500).json({ success: false, message: '伺服器錯誤' });
   } finally {
     connection.release();

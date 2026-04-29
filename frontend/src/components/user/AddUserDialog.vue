@@ -48,8 +48,8 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="後台角色" required>
-        <el-select v-model="addForm.back_role_id" placeholder="請選擇後台角色" style="width: 100%">
+      <el-form-item label="系統角色" required>
+        <el-select v-model="addForm.back_role_id" placeholder="請選擇系統角色" style="width: 100%">
           <el-option 
             v-for="role in optionsData?.backRoles" 
             :key="role.id" 

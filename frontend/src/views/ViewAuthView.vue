@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
           <span>閱覽管理</span>
-          <el-button type="primary" @click="handleAdd">新增閱覽權限</el-button>
+          <el-button type="primary" icon="Plus" @click="handleAdd">新增權限</el-button>
         </div>
       </template>
 
@@ -19,18 +19,15 @@
       </div>
 
       <el-table :data="filteredViewers" border stripe v-loading="loading">
-        <el-table-column label="姓名/工號" width="200">
-          <template #default="scope">
-            {{ scope.row.name }} ({{ scope.row.emp_id }})
-          </template>
-        </el-table-column>
+        <el-table-column prop="emp_id" label="工號" width="120" />
+        <el-table-column prop="name" label="姓名" width="120" />
         
         <el-table-column prop="unit_name" label="單位" width="130" />
 
         <el-table-column prop="front_role_name" label="前台角色" width="130">
           <template #default="scope">
             <el-tag v-if="scope.row.front_role_name" size="small">{{ scope.row.front_role_name }}</el-tag>
-            <span v-else style="color: #909399; font-size: 12px;">無前台角色</span>
+            <span v-else style="color: #909399; font-size: 12px;">無角色</span>
           </template>
         </el-table-column>
         
@@ -66,6 +63,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // 🌟 改用獨立的 API 檔案，保持程式碼整潔
 import { getViewersAPI } from '../api/viewers' 
 import ViewerDialog from '../components/viewer/ViewerDialog.vue'
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const searchQuery = ref('')
 const loading = ref(false)
@@ -120,7 +120,29 @@ const handleEdit = (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`確定要移除 ${row.name} 的閱覽權限嗎？`)
+  ElMessageBox.confirm(
+    `確定要移除「${row.name}」的閱覽權限嗎？`,
+    '警告',
+    { confirmButtonText: '確定移除', cancelButtonText: '取消', type: 'warning' }
+  ).then(async () => {
+    try {
+      // 🌟 唯一重點：抓出目前登入的主管 ID
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      
+      // 🌟 網址後面帶上 ?operator_id=xxx，讓後端去判斷要全刪還是部分刪除
+      const res = await axios.delete(`${API_BASE_URL}/api/viewers/${row.id}?operator_id=${currentUser.id}`);
+      
+      if (res.data.success) {
+        ElMessage.success('刪除成功');
+        // 🔄 換成你實際重新抓取列表的 function (例如 fetchViewers)
+        fetchViewers(); 
+      }
+    } catch (error) {
+      ElMessage.error('刪除失敗');
+    }
+  }).catch(() => {
+    // 按下取消會默默走到這裡，什麼都不用做，視窗會自動關掉
+  });
 }
 
 onMounted(() => {

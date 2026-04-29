@@ -31,7 +31,7 @@ router.post('/login', async (req, res) => {
     // 若沒有拋出錯誤，代表 LDAP 密碼驗證成功！
     console.log(`LDAP 驗證成功: ${username}`);
 
-    // 2. 去我們的 MySQL 資料庫尋找這個人
+    // 2. 去 MySQL 資料庫尋找這個人
     const [users] = await db.query('SELECT * FROM users WHERE emp_id = ?', [username]);
     let dbUser = users[0];
 
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
 
     // 6. 更新最後登入時間
     //直接讓 MySQL 產生時間，不再從 Node.js 帶入
-await db.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [dbUser.id]);
+   await db.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [dbUser.id]);
     
     // 7. 放行！回傳使用者資料給 Vue 前端
     return res.json({

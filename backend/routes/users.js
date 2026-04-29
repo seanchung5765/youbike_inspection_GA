@@ -51,8 +51,8 @@ router.get('/', async (req, res) => {
         fr.name AS front_role_name,
         u.status,
         IF(u.status = 'ACTIVE', 1, 0) AS is_active,
-        GROUP_CONCAT(DISTINCT rg.name SEPARATOR ', ') AS view_regions_name,
-        GROUP_CONCAT(DISTINCT rg.id SEPARATOR ',') AS view_regions_ids
+        GROUP_CONCAT(DISTINCT rg.name ORDER BY rg.id ASC SEPARATOR ', ') AS view_regions_name,
+        GROUP_CONCAT(DISTINCT rg.id ORDER BY rg.id ASC SEPARATOR ',') AS view_regions_ids
       ${baseSql}
       GROUP BY u.id
       ORDER BY u.emp_id ASC
@@ -168,19 +168,49 @@ router.put('/:id', async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    //  步驟 A：更新主表 (記得帶上 updated_at)
+    // 🌟 核心防呆處理：將前端傳來的空字串轉換為 null
+    const safeUnitId = unit_id === '' ? null : unit_id;
+    const safeBackRoleId = back_role_id === '' ? null : back_role_id;
+    const safeFrontRoleId = front_role_id === '' ? null : front_role_id;
+
+    // 步驟 A：更新主表 (完美，保持不變)
     await connection.query(
       `UPDATE users SET 
         name = ?, unit_id = ?, back_role_id = ?, front_role_id = ?, 
         updated_by = ?, updated_at = NOW() 
        WHERE id = ?`,
-      [name, unit_id, back_role_id, front_role_id, operator_id, userId]
+      [name, safeUnitId, safeBackRoleId, safeFrontRoleId, operator_id, userId]
     );
 
-    // 步驟 B：處理地區 (先刪後增)
-    await connection.query('DELETE FROM user_view_regions WHERE user_id = ?', [userId]);
-    if (view_regions && view_regions.length > 0) {
-      const regionValues = view_regions.map(group_id => [userId, group_id, operator_id]);
+    // ==========================================
+    // 步驟 B：差異更新地區 (Smart Sync) - 取代原本的先刪後增
+    // ==========================================
+    
+    // 1. 查出資料庫現有的地區
+    const [existingRows] = await connection.query(
+      'SELECT report_group_id FROM user_view_regions WHERE user_id = ?',
+      [userId]
+    );
+    const existingIds = existingRows.map(r => r.report_group_id);
+
+    // 防呆：確保 view_regions 是陣列 (若前端沒傳則視為空陣列)
+    const newRegionIds = view_regions || [];
+
+    // 2. 計算差異
+    const toDelete = existingIds.filter(id => !newRegionIds.includes(id));
+    const toAdd = newRegionIds.filter(id => !existingIds.includes(id));
+
+    // 3. 執行精準刪除 (只刪掉被取消打勾的)
+    if (toDelete.length > 0) {
+      await connection.query(
+        'DELETE FROM user_view_regions WHERE user_id = ? AND report_group_id IN (?)',
+        [userId, toDelete]
+      );
+    }
+
+    // 4. 執行精準新增 (只新增後來才打勾的，並留下現在操作者的名字)
+    if (toAdd.length > 0) {
+      const regionValues = toAdd.map(group_id => [userId, group_id, operator_id]);
       await connection.query(
         'INSERT INTO user_view_regions (user_id, report_group_id, created_by) VALUES ?',
         [regionValues]
@@ -191,6 +221,7 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, message: '資料更新成功' });
   } catch (error) {
     await connection.rollback();
+    console.error(`❌ 更新人員 (ID: ${userId}) 發生 SQL 錯誤:`, error);
     res.status(500).json({ success: false, message: '更新失敗' });
   } finally {
     connection.release();

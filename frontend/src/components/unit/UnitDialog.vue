@@ -1,15 +1,15 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="isEdit ? `編輯 [${currentUnitName}] 權限範圍` : '新增單位與權限'"
+    :title="isEdit ? `編輯 [${formData.name}] 權限範圍` : '新增單位與權限'"
     width="550px"
     @close="resetForm"
   >
     <el-form label-position="top" v-loading="loading">
       
-      <el-form-item label="單位名稱" required v-if="!isEdit">
+      <el-form-item label="單位名稱" required >
         <el-input 
-          v-model="unitName" 
+          v-model="formData.name" 
           placeholder="請輸入單位名稱" 
           maxlength="50"
           show-word-limit
@@ -17,12 +17,11 @@
       </el-form-item>
 
       <el-form-item label="請勾選此單位可視的地區 (可多選)">
-        <el-checkbox-group v-model="selectedRegions" class="region-checkbox-group">
+        <el-checkbox-group v-model="formData.region_ids" class="region-checkbox-group">
           <el-checkbox 
             v-for="region in allRegions" 
             :key="region.id" 
-            :label="region.id"
-            border
+            :value="region.id"  border
             class="region-checkbox"
           >
             {{ region.name }}
@@ -46,7 +45,6 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSystemOptionsAPI } from '../../api/system' 
-// 🌟 記得要多引入 addUnitAPI
 import { updateUnitRegionsAPI, addUnitAPI } from '../../api/units' 
 
 const emit = defineEmits(['success'])
@@ -54,37 +52,31 @@ const emit = defineEmits(['success'])
 const visible = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
-
-// 🌟 新增模式判斷開關與欄位
 const isEdit = ref(false)
-const unitName = ref('') // 存新增時的單位名稱
-
-const currentUnitId = ref(null)
-const currentUnitName = ref('')
 const allRegions = ref([]) 
-const selectedRegions = ref([]) 
 
-// 🌟 修改 open 方法，接收 mode 參數
+// 🌟 1. 宣告統一的表單變數 (把那些零碎的變數都淘汰掉)
+const formData = ref({
+  id: null,
+  name: '',
+  region_ids: []
+})
+
+// 🌟 2. 乾淨的 open 方法
 const open = async (mode, row = null) => {
   visible.value = true
-  isEdit.value = mode === 'edit' // 判斷是否為編輯模式
+  isEdit.value = mode === 'edit'
   
   if (isEdit.value && row) {
-    // 【編輯模式】：自動填入舊資料
-    currentUnitId.value = row.id
-    currentUnitName.value = row.unit_name
-    selectedRegions.value = row.allowed_regions_ids 
-      ? row.allowed_regions_ids.split(',').map(Number) 
-      : []
+    formData.value = { 
+      id: row.id, 
+      name: row.unit_name || row.name, // 確保抓到名字
+      region_ids: row.allowed_regions_ids ? row.allowed_regions_ids.split(',').map(Number) : []
+    }
   } else {
-    // 【新增模式】：確保表單是乾淨的
-    currentUnitId.value = null
-    currentUnitName.value = ''
-    unitName.value = ''
-    selectedRegions.value = []
+    formData.value = { id: null, name: '', region_ids: [] }
   }
 
-  // 撈取所有地區選項
   if (allRegions.value.length === 0) {
     fetchRegions()
   }
@@ -104,13 +96,13 @@ const fetchRegions = async () => {
   }
 }
 
-// 🌟 結合新增與編輯的送出邏輯
+// 🌟 3. 送出邏輯：全面改用 formData
 const submitForm = async () => {
-  // 防呆檢查
-  if (!isEdit.value && !unitName.value.trim()) {
+  // 防呆檢查改看 formData
+  if (!isEdit.value && !formData.value.name.trim()) {
     return ElMessage.warning('請輸入單位名稱！')
   }
-  if (selectedRegions.value.length === 0) {
+  if (formData.value.region_ids.length === 0) {
     return ElMessage.warning('請至少選擇一個地區！')
   }
 
@@ -118,19 +110,19 @@ const submitForm = async () => {
   try {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
     
-    // 共用的大禮包
+    // 把資料打包好
     const payload = {
-      region_ids: selectedRegions.value,
+      name: formData.value.name, // 單位名稱 (後端 PUT/POST 應該都是收 name)
+      region_ids: formData.value.region_ids, // 勾選的地區陣列
       operator_id: currentUser.id
     }
 
     let res;
     if (isEdit.value) {
-      // 編輯 API
-      res = await updateUnitRegionsAPI(currentUnitId.value, payload)
+      // 編輯 API (帶入 formData 的 id)
+      res = await updateUnitRegionsAPI(formData.value.id, payload)
     } else {
-      // 新增 API (要把單位名稱塞進去)
-      payload.unit_name = unitName.value
+      // 新增 API
       res = await addUnitAPI(payload)
     }
 
@@ -140,16 +132,15 @@ const submitForm = async () => {
       emit('success')
     }
   } catch (error) {
-    // 如果後端吐出 400 (例如名稱重複)，可以直接顯示後端的錯誤訊息
     ElMessage.error(error.response?.data?.message || '操作失敗，請聯絡系統管理員')
   } finally {
     submitting.value = false
   }
 }
 
+// 🌟 4. 關閉時清空
 const resetForm = () => {
-  unitName.value = ''
-  selectedRegions.value = []
+  formData.value = { id: null, name: '', region_ids: [] }
 }
 
 defineExpose({ open })

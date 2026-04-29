@@ -4,14 +4,14 @@
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span>單位權限管理</span>
-          <el-button type="primary" @click="handleAdd">新增</el-button>
+          <el-button type="primary" icon="Plus" @click="handleAdd">新增單位權限</el-button>
         </div>
       </template>
 
       <el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
         <el-table-column prop="unit_name" label="單位名稱" width="180" />
         
-        <el-table-column label="可閱覽地區">
+        <el-table-column label="閱覽地區">
           <template #default="scope">
             <el-tag 
               v-for="region in formatRegions(scope.row.allowed_regions_name)" 
@@ -81,7 +81,7 @@ const formatRegions = (regionsStr) => {
 // 點擊編輯
 const handleEdit = (row) => {
   if (unitDialogRef.value) {
-    unitDialogRef.value.open(row)
+    unitDialogRef.value.open('edit', row)
   }
 }
 

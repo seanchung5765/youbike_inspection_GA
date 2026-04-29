@@ -26,17 +26,36 @@
 <el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
         <el-table-column prop="emp_id" label="工號" width="100" />
         <el-table-column prop="name" label="姓名" width="120" />
-        <el-table-column prop="unit_name" label="所屬單位" width="120" />
-        
-        <el-table-column prop="view_regions_name" label="閱覽地區" min-width="150">
+        <el-table-column label="單位">
           <template #default="scope">
-            {{ scope.row.view_regions_name || '無' }}
+            <el-tag type="primary" effect="plain" v-if="scope.row.unit_name">
+              {{ scope.row.unit_name }}
+            </el-tag>
+            <span v-else>無</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column label="閱覽地區">
+          <template #default="scope">
+            <template v-if="scope.row.view_regions_name">
+              <el-tag 
+                  v-for="region in scope.row.view_regions_name.split(', ')" 
+                  :key="region"
+                  type="primary" 
+                  style="margin-right: 4px; margin-bottom: 4px;"
+                >
+                {{ region }}
+              </el-tag>
+            </template>
+            <span v-else>無</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="front_role_name" label="前台角色" width="120">
+        <el-table-column label="前台角色">
           <template #default="scope">
-            {{ scope.row.front_role_name || '無角色' }}
+            <el-tag type="info" effect="plain">
+              {{ scope.row.front_role_name || '無角色' }}
+            </el-tag>
           </template>
         </el-table-column>
 
