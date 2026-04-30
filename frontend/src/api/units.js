@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseURL = 'http://localhost:3000/api'
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 // 獲取單位權限列表
 export const getUnitsAPI = () => {

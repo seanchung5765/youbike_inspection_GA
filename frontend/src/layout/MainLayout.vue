@@ -2,7 +2,7 @@
 <template>
   <el-container class="layout-container">
     <el-aside width="200px" class="aside">
-      <div class="logo">YouBike 後台</div>
+      <div class="logo">YouBike 模擬體驗後台</div>
       
       <el-menu
         active-text-color="#ffd04b"

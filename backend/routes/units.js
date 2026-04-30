@@ -46,9 +46,7 @@ router.put('/:unitId/regions', async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // ==========================================
-    // 🌟 任務 A：更新單位主表的名稱 (把原本的第 5 步移到這裡來做)
-    // ==========================================
+    // 任務 A：更新單位主表的名稱 
     if (name) {
       await connection.query(
         'UPDATE units SET name = ?, updated_by = ?, updated_at = NOW() WHERE id = ?',
@@ -56,9 +54,7 @@ router.put('/:unitId/regions', async (req, res) => {
       );
     }
 
-    // ==========================================
-    // 🌟 任務 B：更新地區權限 (你原本寫得很好的 Smart Sync 邏輯)
-    // ==========================================
+    // 🌟 任務 B：更新地區權限
     const [existingRows] = await connection.query(
       'SELECT region_id FROM unit_allowed_regions WHERE unit_id = ?',
       [unitId]
@@ -104,7 +100,7 @@ router.post('/', async (req, res) => {
   const connection = await db.getConnection();
 
   try {
-    // 防呆：檢查名稱是否重複 (這裡也改成 name)
+    // 防呆：檢查名稱是否重複
     const [exist] = await connection.query('SELECT id FROM units WHERE name = ?', [name]);
     if (exist.length > 0) {
       return res.status(400).json({ success: false, message: '該單位名稱已存在' });
@@ -112,7 +108,7 @@ router.post('/', async (req, res) => {
 
     await connection.beginTransaction();
 
-    // 2. 寫入單位主表 (這裡也改成 name)
+    // 2. 寫入單位主表
     const [unitResult] = await connection.query(
       'INSERT INTO units (name, status, created_by) VALUES (?, "ACTIVE", ?)',
       [name, operator_id]
@@ -133,7 +129,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     await connection.rollback();
-    // 🌟 把錯誤印在後端終端機，以後除錯一秒鐘搞定！
+    // 把錯誤印在後端終端機，以後除錯一秒鐘搞定！
     console.error("❌ 新增單位失敗：", error);
     res.status(500).json({ success: false, message: '伺服器錯誤' });
   } finally {

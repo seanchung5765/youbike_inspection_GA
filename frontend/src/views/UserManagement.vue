@@ -1,37 +1,36 @@
 //人員管理
 <template>
   <div class="user-management">
-    <el-card class="box-card">
+    <el-card>
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span>人員權限管理</span>
+          <el-button type="primary" icon="Plus" @click="openAddDialog">新增人員權限</el-button>
         </div>
       </template>
-      <div class="header-action">
+
+      <div class="search-bar" style="margin-bottom: 20px;">
         <el-input
           v-model="searchQuery"
           placeholder="請輸入工號或姓名"
-          class="search-input"
+          style="width: 300px; margin-right: 10px;"
           clearable
           @clear="fetchUsers"
           @keyup.enter="fetchUsers"
-        >
-          <template #append>
-            <el-button icon="Search" @click="fetchUsers" />
-          </template>
-        </el-input>
-        <el-button type="primary" icon="Plus" @click="openAddDialog">新增人員</el-button>
+        />
+        <el-button type="primary" @click="fetchUsers">查詢</el-button>
       </div>
 
-<el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
-        <el-table-column prop="emp_id" label="工號" width="100" />
+      <el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
+        <el-table-column prop="emp_id" label="工號" width="120" />
         <el-table-column prop="name" label="姓名" width="120" />
-        <el-table-column label="單位">
+        
+        <el-table-column label="單位" width="130">
           <template #default="scope">
-            <el-tag type="primary" effect="plain" v-if="scope.row.unit_name">
+            <el-tag type="primary" effect="plain" v-if="scope.row.unit_name" size="small">
               {{ scope.row.unit_name }}
             </el-tag>
-            <span v-else>無</span>
+            <span v-else style="color: #909399; font-size: 12px;">無</span>
           </template>
         </el-table-column>
         
@@ -39,42 +38,44 @@
           <template #default="scope">
             <template v-if="scope.row.view_regions_name">
               <el-tag 
-                  v-for="region in scope.row.view_regions_name.split(', ')" 
-                  :key="region"
-                  type="primary" 
-                  style="margin-right: 4px; margin-bottom: 4px;"
-                >
+                v-for="region in scope.row.view_regions_name.split(', ')" 
+                :key="region"
+                type="primary" 
+                size="small"
+                style="margin-right: 4px; margin-bottom: 4px;"
+              >
                 {{ region }}
               </el-tag>
             </template>
-            <span v-else>無</span>
+            <span v-else style="color: #909399; font-size: 12px;">無</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="前台角色">
+        <el-table-column label="前台角色" width="130">
           <template #default="scope">
-            <el-tag type="info" effect="plain">
+            <el-tag type="info" effect="plain" size="small">
               {{ scope.row.front_role_name || '無角色' }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="role_name" label="系統角色" width="120">
+        <el-table-column prop="role_name" label="系統角色" width="130">
           <template #default="scope">
-            <el-tag :type="scope.row.role_name === '高階管理員' ? 'danger' : 'info'">
+            <el-tag :type="scope.row.role_name === '高階管理員' ? 'danger' : 'info'" size="small">
               {{ scope.row.role_name || '無角色' }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
             <el-button size="small" type="primary" plain @click="handleEdit(scope.row)">編輯</el-button>
             <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">刪除</el-button>
           </template>
         </el-table-column>
+      </el-table> 
 
-        </el-table> <div class="pagination-container">
+      <div class="pagination-container" style="margin-top: 20px; display: flex; justify-content: flex-end;">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -92,18 +93,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'//
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUsersAPI } from '../api/users'
-import { deleteUserAPI } from '../api/users'
-import AddUserDialog from '../components/user/AddUserDialog.vue' // 引入子元件
+import { getUsersAPI, deleteUserAPI } from '../api/users'
+import AddUserDialog from '../components/user/AddUserDialog.vue'
 
-const tableData = ref([])
-const loading = ref(false)
-const searchQuery = ref('')
-const currentPage = ref(1)
-const pageSize = ref(10)
-const totalUsers = ref(0)
+//宣告
+const tableData = ref([])//存放從後端抓回來的人員列表（陣列）。
+const loading = ref(false)//存放「是不是正在載入中」的狀態（True 或 False）。
+const searchQuery = ref('')//存放使用者在搜尋框輸入的文字。
+const currentPage = ref(1)//存放目前在第幾頁。
+const pageSize = ref(10)//存放每一頁要顯示幾筆資料。
+const totalUsers = ref(0)//存放資料庫裡總共有多少人（用來做分頁）。
 
 const fetchUsers = async () => {
   loading.value = true
@@ -165,9 +166,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.user-management { padding: 10px; }
-.header-action { display: flex; justify-content: space-between; margin-bottom: 20px; }
-.search-input { width: 300px; }
-.pagination-container { margin-top: 20px; display: flex; justify-content: flex-end; }
-</style>

@@ -1,10 +1,11 @@
+
 <template>
   <div class="view-auth-container">
     <el-card>
       <template #header>
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>閱覽管理</span>
-          <el-button type="primary" icon="Plus" @click="handleAdd">新增權限</el-button>
+          <span>閱覽權限管理</span>
+          <el-button type="primary" icon="Plus" @click="handleAdd">新增閱覽權限</el-button>
         </div>
       </template>
 
@@ -46,8 +47,8 @@
 
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.row)">編輯</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(scope.row)">刪除</el-button>
+            <el-button size="small" type="primary" plain @click="handleEdit(scope.row)">編輯</el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">刪除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -61,9 +62,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 // 🌟 改用獨立的 API 檔案，保持程式碼整潔
-import { getViewersAPI } from '../api/viewers' 
+import { getViewersAPI, deleteViewerAPI } from '../api/viewers' 
 import ViewerDialog from '../components/viewer/ViewerDialog.vue'
-import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -77,7 +77,6 @@ const fetchViewers = async () => {
   loading.value = true
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    console.log('檢查前端 user 物件內容:', user);// 👈 先加這行在 fetchViewers 裡
     // 🌟 核心修改：除了傳入單位與等級，也要傳入自己的 ID
     const res = await getViewersAPI({ 
       unit_id: user.unit_id, 
@@ -130,7 +129,7 @@ const handleDelete = (row) => {
       const currentUser = JSON.parse(localStorage.getItem('user'));
       
       // 🌟 網址後面帶上 ?operator_id=xxx，讓後端去判斷要全刪還是部分刪除
-      const res = await axios.delete(`${API_BASE_URL}/api/viewers/${row.id}?operator_id=${currentUser.id}`);
+      const res = await deleteViewerAPI(row.id, currentUser.id)
       
       if (res.data.success) {
         ElMessage.success('刪除成功');

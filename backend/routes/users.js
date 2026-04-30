@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     let baseSql = `
       FROM users u
       LEFT JOIN units un ON u.unit_id = un.id
-      JOIN back_roles br ON u.back_role_id = br.id
+      LEFT JOIN back_roles br ON u.back_role_id = br.id
       LEFT JOIN front_roles fr ON u.front_role_id = fr.id
       LEFT JOIN user_view_regions uvr ON u.id = uvr.user_id
       LEFT JOIN report_groups rg ON uvr.report_group_id = rg.id

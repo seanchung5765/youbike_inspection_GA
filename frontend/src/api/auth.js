@@ -1,8 +1,7 @@
 import axios from 'axios'
 
-// 統一設定後端的基礎網址
-// 這樣以後上線換網址，只要改這裡就好！
-const baseURL = 'http://localhost:3000/api'
+
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 /**
  * 登入 API

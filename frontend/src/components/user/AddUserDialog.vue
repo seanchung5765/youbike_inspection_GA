@@ -59,7 +59,7 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="前台角色">
+      <el-form-item label="前台角色" required>
         <el-select v-model="addForm.front_role_id" placeholder="請選擇前台角色" style="width: 100%">
           <el-option 
             v-for="role in optionsData?.frontRoles" 
@@ -99,7 +99,7 @@ import { ref, defineExpose, defineEmits } from 'vue'
 import { ElMessage } from 'element-plus'
 import { searchLdapAPI } from '../../api/ldap'
 import { addPermissionsAPI, updatePermissionsAPI } from '../../api/users'
-import { getSystemOptionsAPI } from '../../api/system.js' // 🌟 引入拿系統選項的 API
+import { getSystemOptionsAPI } from '../../api/system' // 🌟 引入拿系統選項的 API
 
 const emit = defineEmits(['success'])
 const visible = ref(false)
@@ -137,7 +137,6 @@ const fetchOptions = async () => {
   loadingOptions.value = true
   try {
     const res = await getSystemOptionsAPI()
-    console.log('👀 後端傳來的選項資料：', res.data) // 除錯用
     
     if (res.data && res.data.success && res.data.data) {
       optionsData.value = res.data.data
@@ -189,7 +188,7 @@ const handleLdapSearch = async (query) => {
 const submitAddUser = async () => {
   if (!isEdit.value && !selectedEmployee.value) return ElMessage.warning('請先搜尋並選擇員工！')
   if (!addForm.value.back_role_id || !addForm.value.unit_id) return ElMessage.warning('請選擇後台角色與單位！')
-
+  if (! addForm.value.front_role_id) return ElMessage.warning('請選擇前台角色！')
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   // 打包大禮包

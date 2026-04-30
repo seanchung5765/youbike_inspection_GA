@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db'); // 確保有正確引入你的資料庫連線設定
 
-// 🚀 GET /api/menus
 // 目的：根據前端傳來的 roleId，回傳該角色有權限看見的選單
 router.get('/', async (req, res) => {
   try {

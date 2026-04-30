@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseURL = 'http://localhost:3000/api'
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 // 🌟 獲取所有系統下拉選項 (單位、角色、地區)
 export const getSystemOptionsAPI = () => {

@@ -79,7 +79,7 @@ router.post('/login', async (req, res) => {
     //直接讓 MySQL 產生時間，不再從 Node.js 帶入
    await db.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [dbUser.id]);
     
-    // 7. 放行！回傳使用者資料給 Vue 前端
+    // 7. 回傳使用者資料給 Vue 前端
     return res.json({
       success: true,
       message: "登入成功",

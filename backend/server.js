@@ -16,7 +16,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '後端伺服器運作中！' });
 });
 
-// --- 3. 路由分配 (注意這裡的寫法) ---
+// --- 3. 路由分配 ---
 // 這裡我們直接 require 進來使用
 const authRoutes = require('./routes/auth');
 const menuRoutes = require('./routes/menus');
@@ -29,8 +29,8 @@ app.use('/api/menus', menuRoutes); // 選單 API
 app.use('/api/users', userRoutes); // 人員管理 API
 app.use('/api/ldap', require('./routes/ldap'));// 人員查詢API
 app.use('/api/system', require('./routes/system'));// 系統選項API
-app.use('/api/units', unitRoutes); //  單位權限路徑
-app.use('/api/viewers', viewerRoutes);//  閱覽權限路徑
+app.use('/api/units', unitRoutes); //  單位權限API
+app.use('/api/viewers', viewerRoutes);//  閱覽權限API
 
 // --- 4. 啟動伺服器 ---
 const PORT = process.env.PORT || 3000;

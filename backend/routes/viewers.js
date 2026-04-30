@@ -1,6 +1,6 @@
 //負責閱覽權限
 const express = require('express');
-const router = express.Router();
+const router = express.Router();// 建立一個小型的路由系統
 const db = require('../db');
 
 // ============================================================================
@@ -61,13 +61,17 @@ router.get('/', async (req, res) => {
 router.get('/eligible-users', async (req, res) => {
   const { user_id } = req.query; // 這是目前登入操作的主管 ID
   try {
-    // 🌟 核心修正：真正的大海撈針！
     // 撈取全公司 LDAP (users 表) 的所有人，只排除「自己」與「已經在閱覽管理的人」
     const sql = `
-      SELECT id, emp_id, name 
-      FROM users 
-      WHERE id != ?
-        AND id NOT IN (SELECT DISTINCT user_id FROM user_view_regions)
+      SELECT u.id, u.emp_id, u.name, un.name AS unit_name 
+      FROM users u
+      LEFT JOIN units un ON u.unit_id = un.id
+      WHERE u.id != ?
+        AND u.id NOT IN (
+          SELECT DISTINCT user_id 
+          FROM user_view_regions 
+          WHERE user_id IS NOT NULL
+        )
     `;
     
     const [users] = await db.query(sql, [user_id]);
@@ -97,7 +101,7 @@ router.get('/unit-regions', async (req, res) => {
     let sql = '';
     let params = [];
 
-    // 🌟 核心邏輯：高階管理員看全部，中階管理員看單位允許的地區
+    // 高階管理員看全部，中階管理員看單位允許的地區
     if (role_level >= 99) {
       // 擁有 99 分最高權限，直接撈取所有地區群組
       sql = `SELECT id, name FROM report_groups ORDER BY id ASC`;
@@ -127,7 +131,7 @@ router.get('/unit-regions', async (req, res) => {
 // - 寫入的目標欄位為 report_group_id。
 // ============================================================================
 router.post('/', async (req, res) => {
-  // 🌟 接收從前端傳來的 emp_id 和 name
+  // 接收從前端傳來的 emp_id 和 name
   const { emp_id, name, region_ids, operator_id } = req.body;
   const connection = await db.getConnection();
   try {
@@ -142,28 +146,29 @@ router.post('/', async (req, res) => {
     let targetUserId;
 
     if (existingUsers.length > 0) {
-      // 情況 A：已經存在 (可能曾經用過前台 APP) -> 拔除前台角色，收編到本單位，給予閱覽者角色(假設ID為3)
+      // 情況 A：已經存在 (可能曾經用過前台 APP) -> 保留原有前台角色或給予無角色(ID:3)，收編到本單位，給予閱覽者角色(假設ID為3)
       targetUserId = existingUsers[0].id;
-if (opUnitId) {
+      if (opUnitId) {
         await connection.query(
-          'UPDATE users SET unit_id = ?, front_role_id = NULL, back_role_id = 3, updated_by = ?, updated_at = NOW() WHERE id = ?', 
+          // 魔法：IFNULL(front_role_id, 3) 確保他如果是空的，就會變成 3
+          'UPDATE users SET unit_id = ?, front_role_id = IFNULL(front_role_id, 3), back_role_id = 3, updated_by = ?, updated_at = NOW() WHERE id = ?', 
           [opUnitId, operator_id, targetUserId]
         );
       }
     } else {
-      // 情況 B：完全沒在資料庫裡建檔過 -> 自動幫他建立帳號，綁定單位與後台閱覽者角色(假設ID為3)
+      // 情況 B：完全沒在資料庫裡建檔過 -> 自動幫他建立帳號，綁定單位與前台無角色(ID:3)、後台閱覽者角色(假設ID為3)
       const [insertRes] = await connection.query(
         `INSERT INTO users 
           (emp_id, name, unit_id, front_role_id, back_role_id, created_by, created_at) 
          VALUES 
-          (?, ?, ?, NULL, 3, ?, NOW())`,
-        [emp_id, name, opUnitId, operator_id] // 🌟 依序對應 4 個問號
+          (?, ?, ?, 3, 3, ?, NOW())`, // 把原本的 NULL 直接換成 3
+        [emp_id, name, opUnitId, operator_id] // 依序對應 4 個問號
       );
       targetUserId = insertRes.insertId; // 取得剛剛建立的新流水號 ID
     }
 
     // 3. 寫入閱覽地區權限 (使用這個確定的 targetUserId)
-if (region_ids && region_ids.length > 0) {
+    if (region_ids && region_ids.length > 0) {
       const values = region_ids.map(rid => [targetUserId, rid, operator_id]);
       await connection.query(
         'INSERT INTO user_view_regions (user_id, report_group_id, created_by) VALUES ?',
@@ -194,20 +199,20 @@ router.put('/:userId', async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 🌟 1. 先查出資料庫裡「原本」有哪些地區
+    // 1. 先查出資料庫裡「原本」有哪些地區
     const [existingRows] = await connection.query(
       'SELECT report_group_id FROM user_view_regions WHERE user_id = ?', 
       [userId]
     );
     const existingIds = existingRows.map(r => r.report_group_id);
 
-    // 🌟 2. 邏輯比對：抓出「要刪除」和「要新增」的陣列
+    // 2. 邏輯比對：抓出「要刪除」和「要新增」的陣列
     // 要刪除：原本有，但前端傳來的陣列裡沒有
     const toDelete = existingIds.filter(id => !region_ids.includes(id));
     // 要新增：前端傳來的有，但原本資料庫沒有
     const toAdd = region_ids.filter(id => !existingIds.includes(id));
 
-    // 🌟 3. 執行精準刪除
+    // 3. 執行精準刪除
     if (toDelete.length > 0) {
       await connection.query(
         'DELETE FROM user_view_regions WHERE user_id = ? AND report_group_id IN (?)',
@@ -215,7 +220,7 @@ router.put('/:userId', async (req, res) => {
       );
     }
 
-    // 🌟 4. 執行精準新增 (只有新勾選的，才會寫入現在的 operator_id)
+    // 4. 執行精準新增 (只有新勾選的，才會寫入現在的 operator_id)
     if (toAdd.length > 0) {
       const addValues = toAdd.map(rid => [userId, rid, operator_id]);
       await connection.query(
@@ -274,30 +279,27 @@ router.delete('/:id', async (req, res) => {
       `, [targetUserId, unit_id]);
     }
 
-    // 3. 🌟 終極判斷：是否符合「全刪除」條件？
-    // 條件 A：檢查他是不是連一個閱覽地區都沒有了？
+// 3. 終極判斷：是否符合「全刪除」條件？
     const [leftRegions] = await connection.query('SELECT COUNT(*) as count FROM user_view_regions WHERE user_id = ?', [targetUserId]);
     
+    // 如果這個人連一個閱覽地區都沒有了
     if (leftRegions[0].count === 0) {
-      // 條件 B：檢查他有沒有「前台角色」？
       const [targetUser] = await connection.query('SELECT front_role_id FROM users WHERE id = ?', [targetUserId]);
       
       if (targetUser.length > 0) {
         const fRole = targetUser[0].front_role_id;
         
-        // 如果連前台角色都沒有 (null, 空字串, 或 0)
-        if (!fRole || fRole === 0 || fRole === '') {
-          // 🚀 觸發全刪除：因為你資料庫有設 CASCADE，砍掉 user 就會清乾淨所有關聯！
+        // 判斷：如果他連前台角色也沒有 (或者是 3 無角色)
+        if (!fRole || fRole === 0 || fRole === '' || fRole === 3) {
+          // 🚀 觸發全刪除：因為他完全沒有利用價值了，清空這個幽靈帳號！
           await connection.query('DELETE FROM users WHERE id = ?', [targetUserId]);
-        } else {
-          // 🛡️ 防護機制：他雖然沒地區了，但「還有前台角色」，不能砍帳號！
-          // 只能把他的後台角色設為 0 (無角色)，避免觸發 back_role_id cannot be null 的錯誤
-          await connection.query('UPDATE users SET back_role_id = 0 WHERE id = ?', [targetUserId]);
         }
+        
+        // 如果他有前台角色 (例如執行專員)，這裡什麼都不做！
+        // 我們在第 2 步已經精準刪除他的地區了，他的主帳號安全保留，完美符合你的需求！
       }
     }
 
-    // 🚨 剛剛被你不小心註解掉的 commit，幫你恢復了！這行沒跑資料是不會存的！
     await connection.commit();
     res.json({ success: true, message: '權限移除成功' });
   } catch (error) {

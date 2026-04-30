@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const baseURL = 'http://localhost:3000/api'
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+
 
 // 獲取人員列表 API
 // params 可以用來傳遞搜尋關鍵字 (如: { search: 'GB5765', page: 1 })
@@ -13,7 +14,7 @@ export const addPermissionsAPI = (payload) => {
   return axios.post(`${baseURL}/users/permissions`, payload)
 }
 
-// 刪除人員 (使用 DELETE)
+// 刪除人員
 export const deleteUserAPI = (id) => {
   return axios.delete(`${baseURL}/users/${id}`)
 }
