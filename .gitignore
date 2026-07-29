@@ -6,6 +6,8 @@ frontend/node_modules/
 # 環境變數與私鑰
 .env
 backend/.env
+# 精準排除 backend/config 底下的所有 json 憑證檔
+backend/config/*.json
 
 # 編譯產物
 dist/
@@ -19,3 +21,4 @@ Thumbs.db
 # 排除資料庫相關檔案與目錄
 database/
 *.sql
+

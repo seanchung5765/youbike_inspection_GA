@@ -1,12 +1,8 @@
-// 導航地圖。決定網址輸入 /user 時，畫面要切換到哪一個頁面
+//frontend/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../views/Login.vue' //login 頁面
-import MainLayout from '../layout/MainLayout.vue' // 引入大外殼
-import Dashboard from '../views/Dashboard.vue'    // 引入首頁
-import UserManagement from '../views/UserManagement.vue' // 引入人員管理
-import UnitManagement from '../views/UnitManagement.vue'// 引入單位權限
+import Login from '../views/Login.vue' 
+import MainLayout from '../layout/MainLayout.vue' 
 
-// 定義路由規則 (網址對應到哪個頁面)
 const routes = [
   {
     path: '/login',
@@ -14,32 +10,93 @@ const routes = [
     component: Login
   },
   {
-    // 根目錄設定為大外殼
+    path: '/photo-viewer',
+    name: 'PhotoViewer',
+    component: () => import('../views/PhotoViewer.vue'), // 路徑請依照你實際放的位置調整
+    meta: { requiresAuth: true } // 💡 視情況決定要不要擋權限 (看下方說明)
+  },
+  {
     path: '/',
     component: MainLayout,
-    redirect: '/dashboard', // 預設導向 dashboard
-    //children 裡面的頁面，都會被塞進 MainLayout 的 <router-view /> 裡面
+    redirect: '/dashboard', 
     children: [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: Dashboard
+        component: () => import('../views/Dashboard.vue'), 
       },
+      // 📂 1. 權限管理 (route_code: admin-root)
       {
-        path: 'UserAuth', 
-        name: 'UserAuth',
-        component: UserManagement
+        path: 'admin',
+        children: [
+          {
+            path: 'unit-management',
+            name: 'unit-management',
+            component: () => import('../views/admin/UnitManagement.vue'), 
+          },
+          {
+            path: 'user-management',
+            name: 'user-management',
+            component: () => import('../views/admin/UserManagement.vue'), 
+          },
+          {
+            path: 'view-auth',
+            name: 'view-auth',
+            component: () => import('../views/admin/ViewAuthView.vue'), 
+          }
+        ]
       },
+      // 📂 2. 資料管理 (route_code: DataGroup)
       {
-        path: 'UnitAuth', 
-        name: 'UnitAuth',
-        component: UnitManagement
+        path: 'data',
+        children: [
+          {
+            path: 'monthly-sync',
+            name: 'monthly-sync',
+            component: () => import('../views/dataprocess/SyncManager.vue'), 
+          },
+          {
+            path: 'data-edit',      
+            name: 'data-edit',
+            component: () => import('../views/dataprocess/DataEditList.vue'), 
+          },
+        ]
       },
+      // 📂 3. 系統設定 (route_code: SystemGroup)
       {
-        path: '/ViewAuth',
-        name: 'ViewAuth',
-        component: () => import('../views/ViewAuthView.vue'), 
-      }
+        path: 'System',
+        children: [
+          {
+            path: 'scoring-rules',      
+            name: 'scoring-rules',
+            component: () => import('../views/system/ScoringRules.vue'), 
+          }
+        ]
+      },
+      // 📂 4. 報表統計 (route_code: ReportGroup)  <-- 🌟 新增這裡！
+      {
+        path: 'report',
+        children: [
+          {
+            path: 'total-score',      
+            name: 'total-score',
+            // 請確認你的檔案建在這個路徑下
+            component: () => import('../views/report/SummaryDashboard.vue'), 
+          }
+        ]
+      },
+      // 📂 5. 問題表
+      /*{
+        path: 'report',
+        children: [
+          {
+            path: 'city-issue',      
+            name: 'city-issue',
+            // 請確認你的檔案建在這個路徑下
+      //      component: () => import('../views/report/DefectGallery.vue'), 
+      //    }
+      ]
+      },*/
     ]
   }
 ]

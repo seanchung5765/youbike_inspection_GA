@@ -1,0 +1,18 @@
+# 排除版本控制與依賴包
+.git
+.gitignore
+node_modules/
+npm-debug.log
+
+# 排除本機編譯出來的產物 (讓 Docker 自己在裡面 build)
+dist/
+dist-ssr/
+
+# 排除本機的開發環境變數
+.env.local
+.env.development
+
+# 排除編輯器設定檔
+.vscode/
+.idea/
+

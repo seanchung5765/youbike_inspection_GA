@@ -1,8 +1,7 @@
-import axios from 'axios'
-
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+//frontend/src/api/system.js
+import request from './index'
 
 // 🌟 獲取所有系統下拉選項 (單位、角色、地區)
 export const getSystemOptionsAPI = () => {
-  return axios.get(`${baseURL}/system/options`)
+  return request.get('/system/options')
 }

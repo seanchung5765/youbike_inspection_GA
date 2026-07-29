@@ -1,18 +1,17 @@
-
 <template>
   <div class="unit-management">
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="header-container">
           <span>單位權限管理</span>
-          <el-button type="primary" icon="Plus" @click="handleAdd">新增單位權限</el-button>
+          <el-button type="primary" icon="Plus" @click="handleAdd" class="mobile-full-btn">新增單位權限</el-button>
         </div>
       </template>
 
       <el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
-        <el-table-column prop="unit_name" label="單位名稱" width="180" />
+        <el-table-column prop="unit_name" label="單位名稱" min-width="150" />
         
-        <el-table-column label="閱覽地區">
+        <el-table-column label="閱覽地區" min-width="200">
           <template #default="scope">
             <el-tag 
               v-for="region in formatRegions(scope.row.allowed_regions_name)" 
@@ -26,20 +25,11 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <!-- 🌟 手機版自動解除 fixed 屬性，避免遮擋內容 -->
+        <el-table-column label="操作" min-width="150" :fixed="isMobile ? false : 'right'">
           <template #default="scope">
-            <el-button 
-              size="small" 
-              type="primary" 
-              plain 
-              @click="handleEdit(scope.row)"
-            >編輯</el-button>
-            <el-button 
-              size="small" 
-              type="danger" 
-              plain 
-              @click="handleDelete(scope.row)"
-            >刪除</el-button>
+            <el-button size="small" type="primary" plain @click="handleEdit(scope.row)">編輯</el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">刪除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -50,16 +40,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getUnitsAPI, deleteUnitAPI } from '../api/units'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { getUnitsAPI, deleteUnitAPI } from '../../api/units'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import UnitDialog from '../components/unit/UnitDialog.vue'
+import UnitDialog from '../../components/admin/UnitDialog.vue'
 
 const tableData = ref([])
 const loading = ref(false)
 const unitDialogRef = ref(null)
 
-// 撈取單位清單
+// 🌟 手機版偵測邏輯
+const isMobile = ref(false);
+const checkMobile = () => { isMobile.value = window.innerWidth <= 768; }
+
 const fetchUnits = async () => {
   loading.value = true
   try {
@@ -74,27 +67,22 @@ const fetchUnits = async () => {
   }
 }
 
-// 處理地區名稱字串轉陣列
 const formatRegions = (regionsStr) => {
   return regionsStr ? regionsStr.split(', ') : []
 }
 
-// 點擊編輯
 const handleEdit = (row) => {
   if (unitDialogRef.value) {
     unitDialogRef.value.open('edit', row)
   }
 }
 
-// 點擊新增
 const handleAdd = () => {
   if (unitDialogRef.value) {
-    // 🌟 開啟時傳入 'add' 模式
     unitDialogRef.value.open('add')
   }
 }
 
-// 刪除邏輯
 const handleDelete = (row) => {
   ElMessageBox.confirm(
     `確定要刪除「${row.unit_name}」嗎？此動作無法復原！`,
@@ -109,33 +97,39 @@ const handleDelete = (row) => {
       const res = await deleteUnitAPI(row.id)
       if (res.data.success) {
         ElMessage.success('單位已成功刪除')
-        fetchUnits() // 刪除成功後，重新撈取表格資料
+        fetchUnits() 
       }
     } catch (error) {
-      // 如果後端回傳 400 (例如底下還有人員)，就會顯示後端的錯誤訊息
       ElMessage.error(error.response?.data?.message || '刪除失敗，請聯絡管理員')
     }
   }).catch(() => {
-    // 使用者點擊取消，不做任何事
     ElMessage.info('已取消刪除')
   })
 }
 
-
 onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   fetchUnits()
 })
 
-
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
 </script>
 
 <style scoped>
-.region-tag {
-  margin-right: 5px;
-  margin-bottom: 5px;
-}
-.text-gray {
-  color: #909399;
-  font-size: 12px;
+.header-container { display: flex; justify-content: space-between; align-items: center; }
+.region-tag { margin-right: 5px; margin-bottom: 5px; }
+.text-gray { color: #909399; font-size: 12px; }
+
+/* 📱 手機版排版 */
+@media (max-width: 768px) {
+  .unit-management { padding: 0; }
+  .header-container { flex-direction: column; align-items: flex-start; gap: 15px; }
+  .mobile-full-btn { width: 100%; margin-left: 0; }
+  :deep(.el-card__header) { padding: 12px; font-weight: bold; }
+  :deep(.el-card__body) { padding: 8px; }
+  :deep(.el-table .cell) { padding: 0 5px; font-size: 13px; }
 }
 </style>

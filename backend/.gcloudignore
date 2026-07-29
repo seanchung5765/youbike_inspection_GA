@@ -1,0 +1,10 @@
+# 排除版本控制與依賴包
+.git
+.gitignore
+node_modules/
+npm-debug.log
+
+# 🚨 極度重要：絕對不能把本機的環境變數與 GCS 金鑰打包上雲端！
+.env
+config/*.json
+

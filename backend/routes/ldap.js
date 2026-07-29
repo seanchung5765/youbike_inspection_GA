@@ -1,3 +1,4 @@
+//backend/routes/ldap.js
 //這個不是拿來做登入，是拿來做查詢工號時，自動帶入用的
 const express = require('express');
 const router = express.Router();

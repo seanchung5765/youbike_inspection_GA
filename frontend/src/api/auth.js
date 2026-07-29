@@ -1,7 +1,5 @@
-import axios from 'axios'
-
-
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+//frontend/src/api/auth.js
+import request from './index'
 
 /**
  * 登入 API
@@ -9,11 +7,11 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
  * @returns Promise
  */
 export const loginAPI = (data) => {
-  return axios.post(`${baseURL}/login`, data)
+  return request.post('/login', data)
 }
 
 export const getMenusAPI = (roleId) => {
-  return axios.get(`${baseURL}/menus`, {
+  return request.get('/menus', {
     params: { roleId: roleId }
   })
 }

@@ -1,7 +1,8 @@
+//backend/routes/units.js
 //取得單位權限列表
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../service/db');
 
 // GET /api/units - 取得單位權限列表
 router.get('/', async (req, res) => {

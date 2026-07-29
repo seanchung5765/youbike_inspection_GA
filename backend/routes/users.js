@@ -1,7 +1,8 @@
+//backend/routes/users.js
 //人員權限管理的核心
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../service/db');
 
 // GET /api/users - 取得人員管理列表
 router.get('/', async (req, res) => {

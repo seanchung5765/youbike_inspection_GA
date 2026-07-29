@@ -1,12 +1,12 @@
-//登入畫面
 <template>
   <div class="login-wrapper">
     <div class="login-card">
       
-      <!-- 頂部 Logo 與標題 -->
+      <!-- 🌟 頂部 Logo 與標題 (改為置中排版與插畫) -->
       <div class="card-header">
-        <div class="logo-box">YB</div>
-        <h1 class="card-title">YouBike 模擬體驗後台系統</h1>
+        <img src="/bike.png" alt="Logo" class="login-logo" />
+        <h1 class="card-title">系統登入</h1>
+        <p class="card-subtitle">請使用公司帳號登入</p>
       </div>
 
       <!-- 表單區域 -->
@@ -20,7 +20,7 @@
         <el-form-item label="帳號" prop="username">
           <el-input 
             v-model="loginForm.username" 
-            placeholder="例如 : GB1234" 
+            placeholder="" 
             class="custom-input"
           />
         </el-form-item>
@@ -29,12 +29,18 @@
           <el-input 
             v-model="loginForm.password" 
             type="password" 
-            placeholder="••••••••" 
+            placeholder="" 
             show-password
             class="custom-input"
             @keyup.enter="handleLogin"
           />
         </el-form-item>
+
+        <!-- 🌟 新增：記住我 與 忘記密碼 -->
+        <div class="form-options">
+          <el-checkbox v-model="rememberMe">記住我</el-checkbox>
+          <el-link type="primary" :underline="false" @click="handleForgotPassword">忘記密碼？</el-link>
+        </div>
 
         <el-form-item class="submit-item">
           <el-button 
@@ -48,19 +54,27 @@
         </el-form-item>
       </el-form>
 
+      <!-- 🌟 新增：底部版權宣告 -->
+      <div class="card-footer">
+        © 2026 YouBike Co., Ltd
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'//可以做到即時更新
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'//負責噴彈出畫面"登入成功"之類的
+import { ElMessage } from 'element-plus'
 import { loginAPI } from '../api/auth'
 
 const router = useRouter()
-const loginFormRef = ref(null)//確認是否輸入帳密
+const loginFormRef = ref(null)
 const loading = ref(false)
+
+// 🌟 新增：記住我 的狀態
+const rememberMe = ref(true)
 
 // 1. 表單資料
 const loginForm = reactive({
@@ -70,19 +84,32 @@ const loginForm = reactive({
 
 // 2. 表單驗證規則
 const rules = {
-  username: [{ required: true, message: '請輸入工號', trigger: 'blur' }],//required意思不准空白。trigger點開輸入框立刻檢查
+  username: [{ required: true, message: '請輸入工號', trigger: 'blur' }],
   password: [{ required: true, message: '請輸入密碼', trigger: 'blur' }]
+}
+
+// 讀取「記住我」的帳號
+onMounted(() => {
+  const savedUsername = localStorage.getItem('remembered_username')
+  if (savedUsername) {
+    loginForm.username = savedUsername
+    rememberMe.value = true
+  }
+})
+
+// 忘記密碼的提示邏輯
+const handleForgotPassword = () => {
+  ElMessage.info('請聯繫系統管理員 (IT 部門) 協助重置密碼。')
 }
 
 // 3. 登入邏輯
 const handleLogin = async () => {
-  if (!loginFormRef.value) return // 先驗證欄位是否有填寫
-  await loginFormRef.value.validate(async (valid) => {//.validate是內建驗證功能
+  if (!loginFormRef.value) return 
+  await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
       try {
-        // 串接後端 API
-          const response = await loginAPI({
+        const response = await loginAPI({
           username: loginForm.username,
           password: loginForm.password
         })
@@ -93,12 +120,17 @@ const handleLogin = async () => {
           // 將使用者資訊轉成字串存進瀏覽器
           localStorage.setItem('user', JSON.stringify(response.data.user))
           
-          // 導向後台首頁 (假設你的首頁路由名稱是 'Dashboard')
+          // 處理「記住我」邏輯
+          if (rememberMe.value) {
+            localStorage.setItem('remembered_username', loginForm.username)
+          } else {
+            localStorage.removeItem('remembered_username')
+          }
+          
           router.push('/dashboard')
         }
       } catch (error) {
         console.error('登入錯誤:', error)
-        // 處理後端回傳的錯誤訊息 (401, 403 等)
         const errMsg = error.response?.data?.message || '登入失敗，請檢查網路連線'
         ElMessage.error(errMsg)
       } finally {
@@ -110,122 +142,128 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-/* 頁面背景：淡淡的灰藍底色 */
+/* 頁面背景：淡淡的灰底色，讓白色卡片跳出來 */
 .login-wrapper {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f3f6; /* 原圖背景色 */
+  background-color: #f5f7fa; 
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* 卡片主體：精準比例與圓角 */
+/* 卡片主體：還原截圖中的白底與細緻陰影 */
 .login-card {
-  width: 420px;            /* 寬度與原圖比例一致 */
+  width: 380px;            
   background: #ffffff;
-  border-radius: 20px;     /* 大圓角 */
-  padding: 45px 40px;      /* 內部大量的呼吸空間 */
-  box-shadow: 0px 10px 40px rgba(0, 0, 0, 0.05); /* 柔和的立體陰影 */
+  border-radius: 8px;      /* 縮小圓角，更貼近原圖的俐落感 */
+  padding: 40px;      
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.08); /* 乾淨清爽的陰影 */
 }
 
-/* 頂部區域 */
+/* 頂部區域：置中排版 */
 .card-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 15px;               /* Logo 與文字的距離 */
-  margin-bottom: 40px;     /* 距離下方表單的高度 */
+  margin-bottom: 30px;    
 }
 
-.logo-box {
-  width: 52px;
-  height: 52px;
-  background-color: #0f172a; /* 深色背景 */
-  color: #ffffff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 14px;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 1px;
+/* 插畫 Logo */
+.login-logo {
+  height: 60px; /* 根據你的圖片比例可微調 */
+  object-fit: contain;
+  margin-bottom: 15px;
 }
 
 .card-title {
-  font-size: 24px;
-  color: #0f172a;
+  font-size: 26px;
+  color: #333333;
+  margin: 0 0 8px 0;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.card-subtitle {
+  font-size: 14px;
+  color: #606266; /* 原圖中淡淡的提示字顏色 */
   margin: 0;
-  font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
 /* 表單與標籤 */
 .login-form :deep(.el-form-item) {
-  margin-bottom: 24px; /* 每個輸入框之間的距離 */
+  margin-bottom: 20px; 
 }
 
 .login-form :deep(.el-form-item__label) {
-  color: #64748b;        /* 原圖淡淡的灰藍色字體 */
+  color: #333333;        
   font-size: 14px;
-  padding-bottom: 8px !important; /* 標籤與輸入框的距離 */
+  font-weight: bold;
+  padding-bottom: 6px !important; 
   line-height: 1;
 }
 
-/* 覆寫 Element Plus 輸入框外觀，做到 1:1 還原 */
+/* 輸入框外觀：還原圓角細邊框 */
 .custom-input :deep(.el-input__wrapper) {
   background-color: #ffffff;
-  border: 1px solid #cbd5e1; /* 原圖的淺灰色細邊框 */
-  box-shadow: none !important; /* 拿掉 Element Plus 預設藍色光暈 */
-  border-radius: 12px;
-  padding: 2px 15px; /* 控制高度 */
-  height: 48px;
+  border: 1px solid #dcdfe6; 
+  box-shadow: none !important; 
+  border-radius: 6px;
+  padding: 0 12px; 
+  height: 42px; /* 高度縮減，看起來更精緻 */
   transition: all 0.2s ease;
 }
 
-/* 點擊輸入框時邊框變深色 */
 .custom-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #64748b;
+  border-color: #409EFF; /* Focus 時變成藍色邊框 */
 }
 
 .custom-input :deep(.el-input__inner) {
-  color: #334155;
-  font-size: 16px;
+  color: #333333;
+  font-size: 15px;
 }
 
-/* 修改 Placeholder 的顏色，讓它像原圖一樣淡 */
-.custom-input :deep(.el-input__inner::placeholder) {
-  color: #94a3b8;
+/* 記住我 與 忘記密碼 的橫列 */
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* 記住我 Checkbox 樣式 */
+:deep(.el-checkbox__label) {
+  color: #333333 !important;
+  font-weight: normal;
 }
 
 /* 按鈕區域 */
 .submit-item {
-  margin-top: 10px; 
   margin-bottom: 0 !important;
 }
 
+/* 登入按鈕：明亮的 YouBike 藍色 */
 .submit-btn {
   width: 100%;
-  height: 52px;
-  background-color: #0f172a !important; /* 深黑藍色 */
-  border-color: #0f172a !important;
-  border-radius: 12px;
+  height: 44px;
+  background-color: #0066ff !important; /* 根據原圖調整為飽和的藍色 */
+  border-color: #0066ff !important;
+  border-radius: 6px;
   font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 2px; /* 原圖「登入」字樣略微拉開 */
+  font-weight: normal;
+  letter-spacing: 2px; 
 }
 
 .submit-btn:hover {
-  background-color: #1e293b !important; /* 滑鼠移過去稍微變淡 */
-  border-color: #1e293b !important;
+  background-color: #3385ff !important; 
+  border-color: #3385ff !important;
 }
 
-/* 底部文字 (helloworld) */
+/* 底部版權文字 */
 .card-footer {
-  margin-top: 35px;
-  padding-top: 25px;
-  border-top: 1px solid #e2e8f0; /* 一條極細的淺色分隔線 */
-  color: #64748b;
+  margin-top: 40px;
+  text-align: center;
+  color: #909399;
   font-size: 13px;
-  font-family: monospace; /* 原圖 "helloworld" 字體看起來有一點像代碼字體 */
 }
 </style>

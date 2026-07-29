@@ -1,7 +1,8 @@
+//backend/routes/viewers.js
 //負責閱覽權限
 const express = require('express');
 const router = express.Router();// 建立一個小型的路由系統
-const db = require('../db');
+const db = require('../service/db');
 
 // ============================================================================
 // 1. GET /api/viewers - 取得已配置閱覽權限的人員列表 (清單首頁使用)

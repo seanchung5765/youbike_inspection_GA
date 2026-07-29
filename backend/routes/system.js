@@ -1,7 +1,8 @@
+//backend/routes/system.js
 //負責在人員管理顯示所有權限
 const express = require('express');
 const router = express.Router();
-const db = require('../db'); 
+const db = require('../service/db'); 
 
 // GET /api/system/options
 // 目的：一次撈取所有下拉選單的選項

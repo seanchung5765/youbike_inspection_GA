@@ -1,11 +1,10 @@
-//人員管理
 <template>
   <div class="user-management">
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="header-container">
           <span>人員權限管理</span>
-          <el-button type="primary" icon="Plus" @click="openAddDialog">新增人員權限</el-button>
+          <el-button type="primary" icon="Plus" @click="openAddDialog" class="mobile-full-btn">新增人員權限</el-button>
         </div>
       </template>
 
@@ -13,19 +12,19 @@
         <el-input
           v-model="searchQuery"
           placeholder="請輸入工號或姓名"
-          style="width: 300px; margin-right: 10px;"
+          class="mobile-search-input"
           clearable
           @clear="fetchUsers"
           @keyup.enter="fetchUsers"
         />
-        <el-button type="primary" @click="fetchUsers">查詢</el-button>
+        <el-button type="primary" @click="fetchUsers" class="mobile-full-btn search-btn">查詢</el-button>
       </div>
 
       <el-table :data="tableData" style="width: 100%" v-loading="loading" border stripe>
-        <el-table-column prop="emp_id" label="工號" width="120" />
-        <el-table-column prop="name" label="姓名" width="120" />
+        <el-table-column prop="emp_id" label="工號" min-width="100" />
+        <el-table-column prop="name" label="姓名" min-width="100" />
         
-        <el-table-column label="單位" width="130">
+        <el-table-column label="單位" min-width="120">
           <template #default="scope">
             <el-tag type="primary" effect="plain" v-if="scope.row.unit_name" size="small">
               {{ scope.row.unit_name }}
@@ -34,7 +33,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column label="閱覽地區">
+        <el-table-column label="閱覽地區" min-width="180">
           <template #default="scope">
             <template v-if="scope.row.view_regions_name">
               <el-tag 
@@ -51,7 +50,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="前台角色" width="130">
+        <el-table-column label="前台角色" min-width="110">
           <template #default="scope">
             <el-tag type="info" effect="plain" size="small">
               {{ scope.row.front_role_name || '無角色' }}
@@ -59,7 +58,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="role_name" label="系統角色" width="130">
+        <el-table-column prop="role_name" label="系統角色" min-width="110">
           <template #default="scope">
             <el-tag :type="scope.row.role_name === '高階管理員' ? 'danger' : 'info'" size="small">
               {{ scope.row.role_name || '無角色' }}
@@ -67,7 +66,8 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right">
+        <!-- 🌟 手機版自動解除 fixed 屬性 -->
+        <el-table-column label="操作" min-width="140" :fixed="isMobile ? false : 'right'">
           <template #default="scope">
             <el-button size="small" type="primary" plain @click="handleEdit(scope.row)">編輯</el-button>
             <el-button size="small" type="danger" plain @click="handleDelete(scope.row)">刪除</el-button>
@@ -80,7 +80,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
+          :layout="isMobile ? 'total, prev, next' : 'total, sizes, prev, pager, next'"
           :total="totalUsers"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -93,18 +93,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'//
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUsersAPI, deleteUserAPI } from '../api/users'
-import AddUserDialog from '../components/user/AddUserDialog.vue'
+import { getUsersAPI, deleteUserAPI } from '../../api/users'
+import AddUserDialog from '../../components/admin/AddUserDialog.vue'
 
-//宣告
-const tableData = ref([])//存放從後端抓回來的人員列表（陣列）。
-const loading = ref(false)//存放「是不是正在載入中」的狀態（True 或 False）。
-const searchQuery = ref('')//存放使用者在搜尋框輸入的文字。
-const currentPage = ref(1)//存放目前在第幾頁。
-const pageSize = ref(10)//存放每一頁要顯示幾筆資料。
-const totalUsers = ref(0)//存放資料庫裡總共有多少人（用來做分頁）。
+const tableData = ref([])
+const loading = ref(false)
+const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalUsers = ref(0)
+
+// 🌟 手機版偵測邏輯
+const isMobile = ref(false);
+const checkMobile = () => { isMobile.value = window.innerWidth <= 768; }
 
 const fetchUsers = async () => {
   loading.value = true
@@ -133,7 +136,7 @@ const handleDelete = (row) => {
       const res = await deleteUserAPI(row.id)
       if (res.data.success) {
         ElMessage.success('刪除成功')
-        fetchUsers() // 重新刷清單
+        fetchUsers() 
       }
     } catch (error) {
       ElMessage.error('刪除失敗')
@@ -141,28 +144,44 @@ const handleDelete = (row) => {
   })
 }
 
-// --- 📝 處理編輯 ---
+const dialogRef = ref(null)
 const handleEdit = (row) => {
-  if (dialogRef.value) {
-    // 🌟 我們呼叫子元件的 open 方法，並把這一列的資料 (row) 傳進去
-    // 這樣彈出視窗才能「反填」舊資料
-    dialogRef.value.open('edit', row)
-  }
+  if (dialogRef.value) dialogRef.value.open('edit', row)
+}
+const openAddDialog = () => {
+  if (dialogRef.value) dialogRef.value.open()
 }
 
 const handleSizeChange = (val) => { pageSize.value = val; fetchUsers() }
 const handleCurrentChange = (val) => { currentPage.value = val; fetchUsers() }
 
-//處理打開彈出視窗的邏輯
-const dialogRef = ref(null)
-const openAddDialog = () => {
-  if (dialogRef.value) {
-    dialogRef.value.open()
-  }
-}
-
 onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   fetchUsers()
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
+<style scoped>
+.header-container { display: flex; justify-content: space-between; align-items: center; }
+.search-bar { display: flex; align-items: center; }
+.mobile-search-input { width: 300px; margin-right: 10px; }
+
+/* 📱 手機版排版 */
+@media (max-width: 768px) {
+  .user-management { padding: 0; }
+  .header-container { flex-direction: column; align-items: flex-start; gap: 15px; }
+  .search-bar { flex-direction: column; gap: 10px; }
+  .mobile-search-input { width: 100%; margin-right: 0; }
+  .mobile-full-btn { width: 100%; margin-left: 0; }
+  .search-btn { margin-left: 0 !important; }
+  
+  :deep(.el-card__header) { padding: 12px; font-weight: bold; }
+  :deep(.el-card__body) { padding: 10px; }
+  :deep(.el-table .cell) { padding: 0 5px; font-size: 13px; }
+  .pagination-container { justify-content: center !important; }
+}
+</style>
